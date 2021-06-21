@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="device/layout/basic2">
+<th:block layout:fragment="title">
+    <title>Device Status Update</title>
+</th:block>
+
+<th:block layout:fragment="content">
+    <div class="card-content">
+        <form class="form-horizontal" th:action="@{/device/update}" th:object="${board}" method="post"
+              onsubmit="return registerBoard(this)">
+            <!--/* update의 경우 서버로 전달할 게시글 번호 (PK) */-->
+            <input type="hidden" th:if="*{idx != null and idx > 0}" th:field="*{idx}"/>
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <input type="text" th:field="*{deviceId}" class="form-control" placeholder="디바이스 아이디를 입력."/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <input type="text" th:field="*{versionName}" class="form-control" placeholder="버전 이름을 입력."/>
+                </div>
+            </div>
+
+            <!--<div class="form-group">
+                <div class="col-sm-10">
+                    <textarea th:field="*{versionCode}" class="form-control" placeholder="버전 코드를 입력."></textarea>
+                </div>
+            </div>-->
+
+            <div class="btn_wrap text-center" th:object="${params}">
+                <a th:href="|@{/device/list}*{makeQueryString(currentPageNo)}|"
+                   class="btn btn-default waves-effect waves-light">뒤로가기</a>
+                <button type="submit" class="btn btn-primary waves-effect waves-light">저장하기</button>
+            </div>
+        </form>
+    </div>
+    <!-- /.card-content -->
+</th:block>
+
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+			/*<![CDATA[*/
+
+			function registerBoard(form) {
+
+				form.noticeYn.value = form.noticeYn.checked == false ? 'N' : 'Y';
+				form.secretYn.value = form.secretYn.checked == false ? 'N' : 'Y';
+			
+				var result = (
+						   isValid(form.title, "제목", null, null)
+						&& isValid(form.writer, "이름", null, null)
+						&& isValid(form.content, "내용", null, null)
+				);
+			
+				if ( result == false ) {
+					return false;
+				}
+			
+				var idx = /*[[ ${board.idx} ]]*/;
+				if (isEmpty(idx) == false) {
+					var queryString = /*[[ ${params.makeQueryString(params.currentPageNo)} ]]*/;
+			
+					/*[- 쿼리 스트링을 오브젝트 형태로 변환 -]*/
+					queryString = new URLSearchParams(queryString);
+					queryString.forEach(function(value, key) {
+						if (isEmpty(value) == false) {
+							$(form).append('<input type="hidden" name="' + key + '" value="' + value + '" />');
+						}
+					});
+				}
+			}
+			/*[- end of function -]*/
+
+			/*]]>*/
+
+    </script>
+</th:block>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="device/layout/basic2">
+<th:block layout:fragment="title">
+    <title>Device Status Update</title>
+</th:block>
+<th:block layout:fragment="content">
+    <div class="card-content">
+        <form class="form-horizontal" th:action="@{/device/updateReservation}" th:object="${Version}" method="post"
+              onsubmit="return registerBoard(this)">
+            <!--/* update의 경우 서버로 전달할 게시글 번호 (PK) */-->
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <input type="text" th:field="*{versionName}"  class="form-control" placeholder="버전명을 입력(ex.1.0.0)"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <input type="text" th:field="*{appPath}"  class="form-control" placeholder="해당 APK의 파일명 입력"/>
+                </div>
+            </div>
+
+            <!--<div class="form-group">
+                <div class="col-sm-10">
+                    <textarea th:field="*{versionCode}" class="form-control" placeholder="버전 코드를 입력."></textarea>
+                </div>
+            </div>-->
+
+            <div class="btn_wrap text-center" th:object="${params}">
+                <a th:href="|@{/device/list}*{makeQueryString(currentPageNo)}|"
+                   class="btn btn-default waves-effect waves-light">뒤로가기</a>
+                <button type="submit" class="btn btn-primary waves-effect waves-light">저장하기</button>
+            </div>
+        </form>
+    </div>
+    <!-- /.card-content -->
+</th:block>
+
+<th:block layout:fragment="script">
+</th:block>
+</html>

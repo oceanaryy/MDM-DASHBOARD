@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.board.mapper.BoardMapper">
+
+    <sql id="boardColumns">
+        idx
+        , device_id
+        , version_name
+        , delete_yn
+        , last_check_time
+        , last_update_time
+        , device_group
+    </sql>
+    <!-- 디바이스 아이디가 해당 테이블에 없을 경우 insert 시도-->
+    <insert id="insertBoard" parameterType="BoardDTO">
+        INSERT INTO TB_DEVICE_UPDATE (
+        <include refid="boardColumns"/>
+        ) VALUES (
+        #{idx}
+        , #{title}
+        , #{content}
+        , #{writer}
+        , 'N'
+        , NOW()
+        , NULL
+        , NULL
+        )
+    </insert>
+    <!--기기에서 정기적으로 데이터를 보내오면 비교하여 체크-->
+    <insert id="update_chk">
+        INSERT INTO TB_DEVICE_UPDATE (
+        device_id
+        ,version_name
+        ,delete_yn
+        ,last_check_time
+        ,last_update_time
+        ) VALUES (
+        '${deviceId}'
+        ,'${versionName}'
+        ,'N'
+        ,NOW()
+        ,NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+        last_check_time = NOW()
+        ,version_name = '${versionName}'
+    </insert>
+
+    <select id="uptAble" parameterType="BoardDTO" resultType="String">
+        SELECT A.DEVICE_ID,A.VERSION_NAME
+        FROM TB_DEVICE_UPDATE AS A
+        WHERE 1=1
+        AND A.VERSION_NAME = (SELECT MAX(B.VERSION_NAME)
+                                FROM TB_VERSION B
+                                WHERE 1=1
+                                AND B.DELETE_YN = 'N')
+        AND A.DEVICE_ID = '${deviceId}'
+    </select>
+
+    <!-- 디바이스 아이디가 해당 테이블에 있을 경우 insert 시도-->
+    <update id="updateBoard" parameterType="BoardDTO">
+        UPDATE TB_DEVICE_UPDATE
+        SET
+        last_update_time = NOW()
+        , device_id = #{title}
+        , version_name = #{content}
+        , secret_yn = IFNULL(#{secretYn}, 'N')
+        WHERE
+        idx = #{idx}
+    </update>
+
+    <select id="selectVersion" resultType="VersionDTO">
+        <![CDATA[
+        SELECT V.VERSION_NAME, V.INSERT_TIME,
+        CASE WHEN DATE_ADD(DATE_FORMAT(INSERT_TIME,"%Y-%m-%d"), INTERVAL +1 DAY) > NOW() AND V.INSERT_TIME = (SELECT MAX(INSERT_TIME) FROM TB_VERSION) THEN 'Z'
+        WHEN DATE_ADD(DATE_FORMAT(INSERT_TIME,"%Y-%m-%d"), INTERVAL +1 DAY) < NOW() THEN 'Y'
+        ELSE 'X'
+        END AS RUN_YN
+        FROM TB_VERSION AS V
+        ORDER BY INSERT_TIME DESC
+         ]]>
+    </select>
+
+
+    <select id="selectBoardDetail" parameterType="long" resultType="BoardDTO">
+        SELECT
+        <include refid="boardColumns"/>
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        AND
+        idx = #{idx}
+    </select>
+
+
+    <update id="deleteBoard" parameterType="long">
+        UPDATE TB_DEVICE_UPDATE
+        SET
+        delete_yn = 'Y'
+        , delete_time = NOW()
+        WHERE
+        idx = #{idx}
+    </update>
+
+    <select id="selectDeviceList" parameterType="BoardDTO" resultType="BoardDTO">
+        SELECT
+        <include refid="boardColumns"/>
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        <include refid="CommonMapper.search"/>
+        ORDER BY
+        idx DESC,
+        last_check_time DESC
+        <include refid="CommonMapper.paging"/>
+    </select>
+
+    <select id="selectBoardTotalCount" parameterType="BoardDTO" resultType="int">
+        SELECT
+        COUNT(*)
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        <include refid="CommonMapper.search"/>
+    </select>
+    <insert id="uptReserv">
+        <![CDATA[
+        INSERT INTO TB_VERSION (
+        VERSION_NAME
+        ,INSERT_TIME
+        ,delete_yn
+        ,APP_PATH
+        ) VALUES (
+        '${versionName}'
+        ,NOW()
+        ,'N'
+        ,'${appPath}'
+        )
+    ]]>
+    </insert>
+
+
+    <select id="selectVersionCount" resultType="DeviceVersionDTO">
+        SELECT VERSION_NAME,COUNT(*) AS DEVICE_COUNT
+        FROM TB_DEVICE_UPDATE
+        GROUP BY VERSION_NAME
+        ORDER BY VERSION_NAME DESC
+    </select>
+
+    <select id="selectLatestVersion" resultType="VersionDTO">
+        SELECT A.VERSION_NAME
+        ,A.INSERT_TIME
+        ,A.DELETE_YN
+        ,A.APP_PATH
+        ,(SELECT C.UPDATE_DELAY
+        FROM TB_DEVICE_UPDATE AS B
+        LEFT OUTER JOIN TB_GROUP AS C
+        ON B.DEVICE_GROUP = C.GROUP_NAME
+        WHERE B.DEVICE_ID= '${deviceId}') AS UPDATE_DELAY
+            FROM TB_VERSION A
+            WHERE A.VERSION_NAME = (SELECT MAX(B.VERSION_NAME)
+            FROM TB_VERSION B
+            WHERE 1=1
+        AND B.DELETE_YN = 'N')
+    </select>
+
+    <update id="updatenotify" parameterType="BoardDTO">
+        UPDATE TB_DEVICE_UPDATE
+        SET LAST_UPDATE_TIME = NOW()
+        WHERE DEVICE_ID = '${deviceId}'
+    </update>
+
+
+    <update id="update_chk_for_api" parameterType="BoardDTO">
+        UPDATE TB_DEVICE_UPDATE
+        SET LAST_CHECK_TIME = NOW()
+        ,VERSION_NAME = '${versionName}'
+        WHERE DEVICE_ID = '${deviceId}'
+        AND DELETE_YN = 'N'
+    </update>
+
+    <select id="preUpdateAble" parameterType="BoardDTO" resultType="String">
+        SELECT ON_OFF
+        FROM TB_DEVICE_UPDATE
+        WHERE 1=1
+        AND DEVICE_ID = '${deviceId}'
+    </select>
+
+</mapper>

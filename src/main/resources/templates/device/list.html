@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="device/layout/basic">
+<th:block layout:fragment="title">
+    <title>SOFACE UPDATE MANAGEMENT</title>
+</th:block>
+
+<th:block layout:fragment="search">
+    <div th:replace="device/fragments/common :: search"></div>
+</th:block>
+
+<th:block layout:fragment="content">
+    <div class="table-responsive clearfix">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>디바이스 아이디</th>
+                <th>버전정보(버전)</th>
+                <th>마지막 확인 시간</th>
+                <th>업데이트 확인 시간</th>
+                <th>그룹 구분</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${not #lists.isEmpty( deviceList )}" th:each="row : ${deviceList}">
+                <td th:text="${row.deviceId}"></td>
+                <!--<td class="text-left">
+                    <a th:href="|@{/board/view.do}${params.makeQueryString(params.currentPageNo)}&idx=${row.idx}|" th:text="${row.title}"></a>
+                </td>-->
+                <td th:text="${row.versionName}"></td>
+                <td th:text="${#temporals.format( row.lastCheckTime, 'yyyy-MM-dd HH:mm:ss' )}"></td>
+                <td th:text="${#temporals.format( row.lastUpdateTime, 'yyyy-MM-dd HH:mm:ss' )}"></td>
+                <td th:text="${row.deviceGroup}"></td>
+            </tr>
+            <tr th:unless="${not #lists.isEmpty( deviceList )}">
+                <td colspan="5">조회된 결과가 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="btn_wrap text-right">
+            <a th:href="@{/device/update_chk}" class="btn btn-primary waves-effect waves-light">Update</a>
+        </div>
+
+        <th:block layout:fragment="paging">
+            <nav th:replace="device/fragments/common :: pagination"></nav>
+        </th:block>
+    </div>
+</th:block>
+<th:block layout:fragment="content2">
+    <div class="table-responsive clearfix">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>버전명</th>
+                <th>등록시간</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${not #lists.isEmpty( versionList )}" th:each="row : ${versionList}"
+                th:style="${row.runYn == 'Y' ? 'background: #1d84df; color: #ffffff' : row.runYn == 'Z' ? 'background: #50bcdf; color: #ffffff' : '' }"
+                th:onclick="confirm_test([[${row.versionName}]]);">
+                <!--<td class="text-left">
+                    <a th:href="|@{/board/view.do}${params.makeQueryString(params.currentPageNo)}&idx=${row.idx}|" th:text="${row.title}"></a>
+                </td>-->
+                <td th:text="${row.versionName}"></td>
+                <td th:text="${row.insertTime}"></td>
+
+            </tr>
+            <tr th:unless="${not #lists.isEmpty( versionList )}">
+                <td colspan="2">조회된 결과가 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="btn_wrap text-right">
+            <a th:href="@{/device/reservation}" class="btn btn-primary waves-effect waves-light">업데이트 등록</a>
+        </div>
+
+    </div>
+</th:block>
+<th:block layout:fragment="content2_sub">
+    <div class="table-responsive clearfix">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>버전명</th>
+                <th>기기 수</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${not #lists.isEmpty( deviceVersion )}" th:each="row : ${deviceVersion}">
+                <!--<td class="text-left">
+                    <a th:href="|@{/board/view.do}${params.makeQueryString(params.currentPageNo)}&idx=${row.idx}|" th:text="${row.title}"></a>
+                </td>-->
+                <td th:text="${row.versionName == '' ? '버전명 없음' : row.versionName }"></td>
+                <td th:text="${row.deviceCount}"></td>
+
+            </tr>
+            <tr th:unless="${not #lists.isEmpty( versionList )}">
+                <td colspan="2">조회된 결과가 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        window.setTimeout('window.location.reload()',30000); //5초마다 리플리쉬 시킨다.
+			/*<![CDATA[*/
+
+			function movePage(uri, queryString) {
+				location.href = uri + queryString;
+			}
+
+			function searchBoard(form) {
+				/*[- 드롭다운이 아닌 메인 검색 키워드로 검색했을 때 -]*/
+				if (isEmpty(form) == null) {
+					var searchKeyword = document.getElementById("mainSearchKeyword");
+					if (isEmpty(searchKeyword.value) == true) {
+						alert("키워드를 입력해 주세요.");
+						searchKeyword.focus();
+						return false;
+					}
+
+					form = document.getElementById("searchForm");
+					form.searchKeyword.value = searchKeyword.value;
+					form.submit();
+				}
+
+				if (isEmpty(form.searchKeyword.value) == true) {
+					alert("키워드를 입력해 주세요.");
+					form.searchKeyword.focus();
+					return false;
+				}
+			}
+            function updateComment(idx) {
+
+				var writer = document.getElementById("modalWriter");
+				var content = document.getElementById("modalContent");
+
+				var uri = [[ @{/comments/} ]] + idx;
+				var headers = {"Content-Type": "application/json", "X-HTTP-Method-Override": "PATCH"};
+				var params = {"idx": idx, "writer": writer.value, "content": content.value};
+
+				$.ajax({
+					url: uri,
+					type: "PATCH",
+					headers: headers,
+					dataType: "json",
+					data: JSON.stringify(params),
+					success: function(response) {
+						if (response.result == false) {
+							alert("댓글 수정에 실패하였습니다.");
+							return false;
+						}
+
+						printCommentList();
+						$("#commentModal").modal("hide");
+					},
+					error: function(xhr, status, error) {
+						alert("에러가 발생하였습니다.");
+						return false;
+					}
+				});
+			}
+            function confirm_test(idx) {
+                var confirm_test = confirm(idx +"버전을 삭제하시겠습니까?");
+            if ( confirm_test == true ) {
+            }
+            }
+
+			/*[- end of function -]*/
+
+			/*]]>*/
+
+    </script>
+</th:block>
+</html>

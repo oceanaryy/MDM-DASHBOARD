@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.board.mapper.BoardMapper">
+
+    <sql id="boardColumns">
+        idx
+        , title
+        , content
+        , writer
+        , delete_yn
+        , last_check_time
+        , last_update_time
+        , delete_time
+    </sql>
+
+    <insert id="insertBoard" parameterType="BoardDTO">
+        INSERT INTO TB_DEVICE_UPDATE (
+        <include refid="boardColumns"/>
+        ) VALUES (
+        #{idx}
+        , #{title}
+        , #{content}
+        , #{writer}
+        , 0
+        , 'N'
+        , NOW()
+        , NULL
+        , NULL
+        )
+    </insert>
+
+    <select id="selectBoardDetail" parameterType="long" resultType="BoardDTO">
+        SELECT
+        <include refid="boardColumns"/>
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        AND
+        idx = #{idx}
+    </select>
+
+    <update id="updateBoard" parameterType="BoardDTO">
+        UPDATE TB_DEVICE_UPDATE
+        SET
+        last_update_time = NOW()
+        , title = #{title}
+        , content = #{content}
+        , writer = #{writer}
+        WHERE
+        idx = #{idx}
+    </update>
+    <insert id="updateDevices" parameterType="Student">
+        INSERT INTO TB_DEVICE_UPDATE (NAME, email) VALUES ('tez', 'tez@tez.kr') ON DUPLICATE KEY UPDATE name=#{title},
+        email='tezpark@tez.kr';
+    </insert>
+
+    <update id="deleteBoard" parameterType="long">
+        UPDATE TB_DEVICE_UPDATE
+        SET
+        delete_yn = 'Y'
+        , delete_time = NOW()
+        WHERE
+        idx = #{idx}
+    </update>
+
+    <select id="selectBoardList" parameterType="BoardDTO" resultType="resultMap">
+        SELECT
+        idx
+        , DE
+        , version_name
+        , delete_yn
+        , last_check_time
+        , last_update_time
+        , delete_time
+        <include refid="boardColumns"/>
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        <include refid="CommonMapper.search"/>
+        ORDER BY
+        idx DESC,
+        last_check_time DESC
+        <include refid="CommonMapper.paging"/>
+    </select>
+
+    <select id="selectBoardTotalCount" parameterType="BoardDTO" resultType="int">
+        SELECT
+        COUNT(*)
+        FROM
+        TB_DEVICE_UPDATE
+        WHERE
+        delete_yn = 'N'
+        <include refid="CommonMapper.search"/>
+    </select>
+
+</mapper>
